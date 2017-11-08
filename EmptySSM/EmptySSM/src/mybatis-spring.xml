@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:aop="http://www.springframework.org/schema/aop"
+	 xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="    
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd  
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd  
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd  
+        http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-4.3.xsd  
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd
+        ">
+
+<!-- 加载属性配置文件 -->
+	<bean id="configProperties"
+		class="org.springframework.beans.factory.config.PropertiesFactoryBean"
+		p:locations="#{{'classpath:resource.properties'}}" />
+
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
+		p:properties-ref="configProperties" />
+		
+		
+<!-- 数据库连接池c3p0配置 -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" 
+	destroy-method="close"
+	p:driverClass="${dataSource.driverClass}"
+	p:jdbcUrl="${dataSource.jdbcUrl}"
+	p:user="${dataSource.user}"
+	p:password="${dataSource.password}"
+	/>
+  
+
+	<!-- 数据库连接池c3p0配置 -->
+	<!-- <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource"
+		destroy-method="close"
+	    p:driverClass="${dataSource.driverClass}"
+		p:jdbcUrl="${dataSource.jdbcUrl}" 
+		p:user="${dataSource.user}"
+		p:password="${dataSource.password}" 
+		p:initialPoolSize="${dataSource.initialPoolSize}"
+		p:minPoolSize="${dataSource.minPoolSize}" 
+		p:maxPoolSize="${dataSource.maxPoolSize}" /> -->
+
+	<!-- 加载sqlSessionFactory -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean"
+		p:configLocation="classpath:com/aoto/test/persistence/pojo/deptMapper.xml"
+		p:dataSource-ref="dataSource" />
+
+	<!-- mybatis自动扫描加载Sql映射文件/接口 : MapperScannerConfigurer sqlSessionFactory 
+		basePackage:指定sql映射文件/接口所在的包（自动扫描） -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer"
+		p:sqlSessionFactory-ref="sqlSessionFactory" 
+		p:basePackage="com/aoto/test/persistence/dao" />
+
+	<!-- 配置事务管理器 -->
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager"
+		p:dataSource-ref="dataSource"/>
+		
+	<!-- 定义事务的传播性 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="insert*" propagation="REQUIRED" />
+			<tx:method name="update*" propagation="REQUIRED" />
+			<tx:method name="delete*" propagation="REQUIRED" />
+			<tx:method name="query*" propagation="REQUIRED" read-only="true" />
+			<tx:method name="*" propagation="REQUIRED" read-only="true" />
+		</tx:attributes>
+	</tx:advice>
+	<!-- 配置切面 -->
+	<aop:config>
+		<aop:pointcut id="serviceOperation"	expression="execution(* org.aoto.*.business.impl..*.*(..))" />
+		<aop:pointcut id="serviceOperation1"	expression="execution(* org.aoto.*.*.business.impl..*.*(..))" />
+		<aop:pointcut id="serviceOperation2"	expression="execution(* org.aoto.*.*.*.business.impl..*.*(..))" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="serviceOperation" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="serviceOperation1" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="serviceOperation2" />
+	</aop:config>
+
+</beans>  
